@@ -4,6 +4,8 @@ import EquizGame.EquizPacket.EquizPacket;
 import EquizGame.EquizPacket.Message.MessageResponse;
 import EquizGame.EquizPacket.PacketResponse;
 import EquizGame.EquizPacket.Room.StartRoom.StartRoomResponse;
+import EquizGame.GameMode.RedTea;
+import EquizGame.GameMode.TeaGame;
 
 import java.io.IOException;
 import java.util.*;
@@ -16,10 +18,13 @@ public class Room implements Runnable {
     public Set<ClientHandler> playerList = new HashSet<>();
 
     private volatile boolean isRunning = false;
+    private volatile boolean isClose = false;
     private final Object lock = new Object();
 
-    private List<MessageResponse> messageHistory = new ArrayList<>();
-
+    public TeaGame currentGameMode = null;
+    public ClientHandler currentWinner = null;
+    public List<MessageResponse> messageHistory = new ArrayList<>();
+    public Map<String, Integer> playerPoint = new HashMap<>();
 
     public Room(String roomId, String roomName, String roomPassword, int roomPlayerLimits) {
         this.roomId = roomId;
@@ -51,38 +56,78 @@ public class Room implements Runnable {
 
     public void startGame(String gameMode, ClientHandler host) throws IOException {
         synchronized (lock) {
-            isRunning = true;
             StartRoomResponse response = new StartRoomResponse();
             host.sendPacket(response);
+            isRunning = true;
+            switch (gameMode) {
+                case "red_tea":
+                    currentGameMode = new RedTea(this);
+                    break;
+                default:
+                    break;
+            }
             lock.notifyAll();
         }
     }
 
     public void endGame() {
         isRunning = false;
+        currentWinner = null;
+        currentGameMode = null;
+    }
+
+    public void abort() {
+        isClose = true;
     }
 
     @Override
     public void run() {
-        List<String> random = new ArrayList<>();
-        random.add("ion");
-        random.add("ary");
-        random.add("json");
-        Random rand = new Random();
         try {
-            while (true) {
+            while (!isClose) {
+
+                // Pause game until game is started
                 synchronized (lock) {
-                    while (!isRunning) {
+                    while (!isRunning | currentGameMode == null) {
                         lock.wait();
                     }
                 }
-                int pos = rand.nextInt(random.size());
-                MessageResponse messageResponse = new MessageResponse(PacketResponse.OK, "Server", "Guess word: " + random.get(pos));
-                broadcast(messageResponse, null);
-                Thread.sleep(5000);
+
+                // =============Handle game ============
+                currentGameMode.play();
+
+                // =============Announce the player =============
+                MessageResponse winnerMessage = new MessageResponse
+                        (
+                                PacketResponse.OK,
+                                "Server",
+                                "Time's up! The winner is " + currentWinner.username
+                        );
+                broadcast(winnerMessage, null);
+                endGame();
             }
+
         } catch (InterruptedException | IOException e) {
-            Thread.currentThread().interrupt();
+            abort();
         }
+    }
+
+    /**
+     * Check answer for current game.
+     *
+     * @param answer the answer as String.
+     * @param client the client that send the answer.
+     */
+    public void checkAnswer(String answer, ClientHandler client) throws IOException {
+        // Check if valid answer
+        String[] words = answer.split(" ");
+        if (words.length != 1) {
+            return;
+        }
+
+        // ======= Check answer
+        if (currentGameMode == null) {
+            return;
+        }
+        currentGameMode.checkAnswer(words[0], client);
     }
 }

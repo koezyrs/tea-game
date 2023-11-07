@@ -25,8 +25,10 @@ public class WriteThread extends Thread {
                 ClientHelperResponse.handleResponse(packet);
             } catch (IOException | ClassNotFoundException e) {
                 try {
-                    FileWriter writer = new FileWriter(new File("log.txt"), true);
-                    writer.write(LocalDateTime.now() + " - WriteThread: Unable to receive server response!");
+                    FileWriter writer = new FileWriter("log.txt", true);
+                    String logMessage = LocalDateTime.now() + " - ReadThread: " + e.getMessage() + System.lineSeparator();
+                    writer.write(logMessage);
+                    writer.close();
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 }

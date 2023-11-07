@@ -31,8 +31,10 @@ public class ReadThread extends Thread {
                 objectOutputStream.writeObject(request);
             } catch (IOException e) {
                 try {
-                    FileWriter writer = new FileWriter(new File("log.txt"), true);
-                    writer.write(LocalDateTime.now() + " - ReadThread: Unable to send server request!");
+                    FileWriter writer = new FileWriter("log.txt", true);
+                    String logMessage = LocalDateTime.now() + " - ReadThread: " + e.getMessage() + System.lineSeparator();
+                    writer.write(logMessage);
+                    writer.close();
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 }

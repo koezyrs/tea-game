@@ -57,17 +57,22 @@ public class ServerHelper {
 
     private static MessageResponse handleMessage(MessageRequest message, ClientHandler client) {
         MessageResponse response;
+        Room targetRoom = client.currentRoom;
         try {
-            Room targetRoom = client.currentRoom;
             response = new MessageResponse(PacketResponse.OK, client.username, '[' + client.username + "]:"
                     + message.text);
             targetRoom.broadcast(response, client);
+            targetRoom.checkAnswer(message.text, client);
             return response;
         } catch (Exception e) {
             System.out.println(e.getMessage());
             response = new MessageResponse(PacketResponse.ERROR);
             return response;
         }
+
+        // ======== Check player answer of game
+
+
     }
 
     private static OpenRoomResponse handleOpenRoom(OpenRoomRequest packet, ClientHandler client) {
