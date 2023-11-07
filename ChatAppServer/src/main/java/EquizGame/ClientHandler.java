@@ -39,13 +39,9 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    public void sendPacket(EquizPacket packet) {
-        try {
-            objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-            objectOutputStream.writeObject(packet);
-        } catch (IOException e) {
-
-        }
+    public void sendPacket(EquizPacket packet) throws IOException {
+        objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+        objectOutputStream.writeObject(packet);
     }
 
     public void close() {

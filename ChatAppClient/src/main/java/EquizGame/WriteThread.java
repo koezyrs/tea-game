@@ -2,10 +2,9 @@ package EquizGame;
 
 import EquizGame.EquizPacket.EquizPacket;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.net.Socket;
+import java.time.LocalDateTime;
 
 public class WriteThread extends Thread {
     private Socket socket = null;
@@ -25,7 +24,12 @@ public class WriteThread extends Thread {
                 EquizPacket packet = (EquizPacket) objectInputStream.readObject();
                 ClientHelperResponse.handleResponse(packet);
             } catch (IOException | ClassNotFoundException e) {
-                System.out.println("Unable to receive server response!");
+                try {
+                    FileWriter writer = new FileWriter(new File("log.txt"), true);
+                    writer.write(LocalDateTime.now() + " - WriteThread: Unable to receive server response!");
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
             }
         }
     }

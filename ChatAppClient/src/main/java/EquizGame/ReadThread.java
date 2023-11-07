@@ -2,9 +2,12 @@ package EquizGame;
 
 import EquizGame.EquizPacket.EquizPacket;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.Scanner;
 
 public class ReadThread extends Thread {
@@ -27,7 +30,12 @@ public class ReadThread extends Thread {
                 objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
                 objectOutputStream.writeObject(request);
             } catch (IOException e) {
-                System.out.println("Unable to send message to server!");
+                try {
+                    FileWriter writer = new FileWriter(new File("log.txt"), true);
+                    writer.write(LocalDateTime.now() + " - ReadThread: Unable to send server request!");
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
                 break;
             }
         }

@@ -22,48 +22,22 @@ public class ServerCleaner extends Thread {
             } catch (InterruptedException e) {
 
             }
-            try {
-                Runtime.getRuntime().exec("cls");
-            } catch (IOException e) {
-
-            }
 
             System.out.println("Current active user: " + clientList.size());
             System.out.println("Current active room: " + roomList.size());
-            for (Room room : roomList) {
-                System.out.println("Room id: " + room.roomId + "\n\t Current active user in room: " + room.playerList.size());
-            }
+            System.out.println();
         }
     }
 
     private void cleanRoomList() {
         for (Room room : roomList) {
-            for (ClientHandler client : room.playerList) {
-                if (client.socket.isClosed() || !client.socket.isConnected()) {
-                    try {
-                        client.socket.close();
-                    } catch (Exception e) {
-                    }
-                    room.removePlayer(client);
-                }
-            }
-
-            if (room.playerList.size() == 0) {
-                roomList.remove(room);
-            }
+            room.playerList.removeIf(x -> x.socket.isClosed());
         }
+        roomList.removeIf(x -> x.playerList.size() == 0);
     }
 
     private void cleanClientList() {
-        for (ClientHandler client : clientList) {
-            if (client.socket.isClosed() || !client.socket.isConnected()) {
-                try {
-                    client.socket.close();
-                } catch (Exception e) {
-                }
-                clientList.remove(client);
-            }
-        }
+        clientList.removeIf(x -> x.socket.isClosed());
     }
 
 

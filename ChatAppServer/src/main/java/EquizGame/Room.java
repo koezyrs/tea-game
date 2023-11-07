@@ -3,20 +3,23 @@ package EquizGame;
 import EquizGame.EquizPacket.EquizPacket;
 import EquizGame.EquizPacket.Message.MessageResponse;
 import EquizGame.EquizPacket.PacketResponse;
+import EquizGame.EquizPacket.Room.StartRoom.StartRoomResponse;
 
+import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 public class Room implements Runnable {
     public String roomId;
     public String roomName;
     public String roomPassword;
     public int roomPlayerLimits;
+    public Set<ClientHandler> playerList = new HashSet<>();
 
     private volatile boolean isRunning = false;
-    private CountDownLatch startSignal = new CountDownLatch(1);
+    private final Object lock = new Object();
 
-    public Set<ClientHandler> playerList = new HashSet<>();
+    private List<MessageResponse> messageHistory = new ArrayList<>();
+
 
     public Room(String roomId, String roomName, String roomPassword, int roomPlayerLimits) {
         this.roomId = roomId;
@@ -25,25 +28,34 @@ public class Room implements Runnable {
         this.roomPlayerLimits = roomPlayerLimits;
     }
 
-    public void addPlayer(ClientHandler client) {
+    public void addPlayer(ClientHandler client) throws IOException {
         playerList.add(client);
-        System.out.println("Player " + client.socket.getInetAddress().toString() + " join the room");
+        System.out.println("Player " + client.socket.getInetAddress().toString() + " joined the room");
+
+        for (MessageResponse message : messageHistory) {
+            client.sendPacket(message);
+        }
     }
 
-    public void removePlayer(ClientHandler client) {
-        playerList.remove(client);
-    }
+    public void broadcast(EquizPacket packet, ClientHandler except) throws IOException {
+        if (packet instanceof MessageResponse) {
+            MessageResponse response = (MessageResponse) packet;
+            messageHistory.add(response);
+        }
 
-    public void broadcast(EquizPacket packet, ClientHandler except) {
         for (ClientHandler player : playerList) {
             if (player == except) continue;
             player.sendPacket(packet);
         }
     }
 
-    public void startGame(String gameMode) {
-        isRunning = true;
-        startSignal.countDown(); // Release the latch to allow the thread to continue
+    public void startGame(String gameMode, ClientHandler host) throws IOException {
+        synchronized (lock) {
+            isRunning = true;
+            StartRoomResponse response = new StartRoomResponse();
+            host.sendPacket(response);
+            lock.notifyAll();
+        }
     }
 
     public void endGame() {
@@ -59,16 +71,17 @@ public class Room implements Runnable {
         Random rand = new Random();
         try {
             while (true) {
-                if (!isRunning) {
-                    startSignal = new CountDownLatch(1);
-                    startSignal.await();
+                synchronized (lock) {
+                    while (!isRunning) {
+                        lock.wait();
+                    }
                 }
                 int pos = rand.nextInt(random.size());
                 MessageResponse messageResponse = new MessageResponse(PacketResponse.OK, "Server", "Guess word: " + random.get(pos));
                 broadcast(messageResponse, null);
                 Thread.sleep(5000);
             }
-        } catch (Exception e) {
+        } catch (InterruptedException | IOException e) {
             Thread.currentThread().interrupt();
         }
     }

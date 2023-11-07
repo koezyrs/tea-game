@@ -7,24 +7,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class EquizServer implements Runnable {
     ServerSocket server;
-    private int corePoolSize = 5;
-    private int maximumPoolSize = 10;
-    private long keepAliveTime = 500;
-    private TimeUnit unit = TimeUnit.SECONDS;
-
-    private ArrayBlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(100);
-
-    private RejectedExecutionHandler handler = new ThreadPoolExecutor.CallerRunsPolicy();
-
-    private ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(corePoolSize,
-            maximumPoolSize, keepAliveTime, unit, workQueue, handler);
+    ExecutorService pool = Executors.newCachedThreadPool();
 
     private Set<ClientHandler> clientList = new HashSet<>();
     private Set<Room> roomList = new HashSet<>();
@@ -51,19 +38,19 @@ public class EquizServer implements Runnable {
                 ClientHandler client = new ClientHandler(socket, this);
                 System.out.println("New client from: " + socket.getInetAddress().getHostAddress());
                 clientList.add(client);
-                threadPoolExecutor.execute(client);
+                pool.execute(client);
             } catch (IOException e) {
                 System.out.println("Unable to accept new client!");
             }
         }
+
     }
 
     public String addRoom(String roomName, String roomPassword, int roomPlayerLimit) {
         String roomId = RandomStringUtils.randomNumeric(10);
         Room newRoom = new Room(roomId, roomName, roomPassword, roomPlayerLimit);
         roomList.add(newRoom);
-        Thread thread = new Thread(newRoom);
-        thread.start();
+        pool.execute(newRoom);
         System.out.println("Room " + roomId + " is opened!");
         return roomId;
     }
@@ -83,6 +70,8 @@ public class EquizServer implements Runnable {
 
     public void close() {
         try {
+            pool.shutdown();
+            while (!pool.isTerminated());
             server.close();
             Thread.currentThread().interrupt();
         } catch (IOException e) {

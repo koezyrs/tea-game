@@ -15,6 +15,7 @@ import EquizGame.EquizPacket.Room.ShowRoom.ShowRoomResponse;
 import EquizGame.EquizPacket.Room.StartRoom.StartRoomRequest;
 import EquizGame.EquizPacket.Room.StartRoom.StartRoomResponse;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -107,7 +108,11 @@ public class ServerHelper {
     }
 
     private static StartRoomResponse handleStartGame(StartRoomRequest packet, ClientHandler client) {
-        client.currentRoom.startGame(packet.gameMode);
+        try {
+            client.currentRoom.startGame(packet.gameMode, client);
+        } catch (IOException e) {
+
+        }
         return new StartRoomResponse();
     }
 }
