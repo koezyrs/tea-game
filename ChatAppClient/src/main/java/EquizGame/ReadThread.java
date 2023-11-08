@@ -23,7 +23,7 @@ public class ReadThread extends Thread {
     }
 
     public void run() {
-        while (true) {
+        while (socket.isConnected()) {
             try {
                 String mess = sc.nextLine();
                 EquizPacket request = ClientHelperRequest.handleRequest(mess);

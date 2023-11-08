@@ -18,7 +18,7 @@ public class WriteThread extends Thread {
     }
 
     public void run() {
-        while (true) {
+        while (socket.isConnected()) {
             try {
                 objectInputStream = new ObjectInputStream(socket.getInputStream());
                 EquizPacket packet = (EquizPacket) objectInputStream.readObject();

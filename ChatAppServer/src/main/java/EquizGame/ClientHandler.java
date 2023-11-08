@@ -26,7 +26,7 @@ public class ClientHandler implements Runnable {
             ConnectClientRequest connectRequest = (ConnectClientRequest) objectInputStream.readObject();
             this.username = connectRequest.username;
 
-            while (true) {
+            while (socket.isConnected()) {
                 objectInputStream = new ObjectInputStream(socket.getInputStream());
                 EquizPacket packetRequest = (EquizPacket) objectInputStream.readObject();
                 EquizPacket packetResponse = ServerHelper.handleRequest(packetRequest, this);

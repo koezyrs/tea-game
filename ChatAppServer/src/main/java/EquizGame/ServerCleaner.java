@@ -33,7 +33,15 @@ public class ServerCleaner extends Thread {
         for (Room room : roomList) {
             room.playerList.removeIf(x -> x.socket.isClosed());
         }
-        roomList.removeIf(x -> x.playerList.size() == 0);
+
+        roomList.removeIf(x -> {
+            if (x.playerList.size() == 0) {
+                x.abort();
+                return true;
+            } else {
+                return false;
+            }
+        });
     }
 
     private void cleanClientList() {
