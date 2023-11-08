@@ -4,8 +4,8 @@ import EquizGame.ClientHandler;
 
 import java.io.IOException;
 
-public interface TeaGame {
-    void play() throws IOException;
+public abstract class TeaGame {
+    public abstract void play() throws IOException, InterruptedException;
 
-    void checkAnswer(String word, ClientHandler client) throws IOException;
+    public abstract void checkAnswer(String word, ClientHandler client) throws IOException;
 }

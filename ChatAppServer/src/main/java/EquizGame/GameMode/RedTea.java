@@ -1,46 +1,48 @@
 package EquizGame.GameMode;
 
 import EquizGame.ClientHandler;
+import EquizGame.EquizPacket.EquizPacket;
+import EquizGame.EquizPacket.Message.MessageRequest;
 import EquizGame.EquizPacket.Message.MessageResponse;
 import EquizGame.EquizPacket.PacketResponse;
 import EquizGame.Room;
+import EquizGame.ServerHelper;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.net.Socket;
 import java.util.Map;
 
 /**
  * Red tea is a game which player have to compete to guess the word faster.
  */
-public class RedTea implements TeaGame {
+class Timer extends Thread {
+    long timeMillisecond;
+
+    public Timer(long timeMillisecond) {
+        this.timeMillisecond = timeMillisecond;
+    }
+
+    public void abort() {
+        this.interrupt();
+    }
+
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(timeMillisecond);
+        } catch (InterruptedException e) {
+        }
+    }
+}
+
+public class RedTea extends TeaGame {
     private final Room hostRoom;
     private volatile Timer currentRoundTimer;
     private String currentRoundWord;
 
     private volatile boolean isRunning = true;
     private Map<String, Integer> playerPoint;
-    private int count = 0;
-
-    static class Timer {
-        long startTime = System.currentTimeMillis();
-        long currentTime = startTime;
-        long timeMillisecond;
-        boolean isStop = false;
-
-        Timer(long timeMillisecond) {
-            this.timeMillisecond = timeMillisecond;
-        }
-
-        void stop() {
-            isStop = true;
-        }
-
-        void start() {
-            while (currentTime - startTime <= timeMillisecond && !isStop) {
-                currentTime = System.currentTimeMillis();
-            }
-        }
-
-    }
 
     public RedTea(Room hostRoom) {
         this.hostRoom = hostRoom;
@@ -48,14 +50,18 @@ public class RedTea implements TeaGame {
     }
 
     private void nextRound() {
-        currentRoundTimer.stop();
-        count++;
+        if (hostRoom.currentWinner != null
+                && playerPoint.containsKey(hostRoom.currentWinner.username)
+                && playerPoint.get(hostRoom.currentWinner.username) >= 3) {
+            isRunning = false;
+        }
+        currentRoundTimer.abort();
     }
 
     @Override
-    public void play() throws IOException {
+    public void play() throws IOException, InterruptedException {
         while (isRunning) {
-            //Send word the client
+            //Send word to the client
             String keyword = GameHelper.getRandomKeyword();
             MessageResponse messageResponse = new MessageResponse(PacketResponse.OK, "Server", "Guess word: " + keyword);
             hostRoom.broadcast(messageResponse, null);
@@ -63,8 +69,7 @@ public class RedTea implements TeaGame {
             // Wait for player word
             currentRoundTimer = new Timer(30000);
             currentRoundTimer.start();
-
-            if (count >= 3) isRunning = false;
+            currentRoundTimer.join();
         }
     }
 

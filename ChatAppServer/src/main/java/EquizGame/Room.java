@@ -74,6 +74,7 @@ public class Room implements Runnable {
         isRunning = false;
         currentWinner = null;
         currentGameMode = null;
+        playerPoint.clear();
     }
 
     public void abort() {

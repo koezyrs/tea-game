@@ -70,9 +70,6 @@ public class ServerHelper {
             return response;
         }
 
-        // ======== Check player answer of game
-
-
     }
 
     private static OpenRoomResponse handleOpenRoom(OpenRoomRequest packet, ClientHandler client) {
